@@ -1,4 +1,3 @@
-
 import {React, useEffect, useState} from 'react' 
 import { Box, Button, Typography } from '@mui/material'
 import MyDatePickerField from './forms/MyDatePickerField'
@@ -15,9 +14,9 @@ import MyMultiSelectField from './forms/MyMultiSelectField'
 
 const Create = () => {
 
-  const [projectmanager,setProjectmanager] = useState()
-  const [employees,setEmployees] = useState()
-  const [loading,setLoading] = useState(true)
+  const [projectmanager, setProjectmanager] = useState()
+  const [employees, setEmployees] = useState()
+  const [loading, setLoading] = useState(true)
 
   const hardcoded_options = [
     {id:'', name:'None'}, 
@@ -27,14 +26,19 @@ const Create = () => {
   ]
 
   const GetData = () => {
-    AxiosInstance.get(`projectmanager/`).then((res) =>{
+    AxiosInstance.get(`projectmanager/`).then((res) => {
       setProjectmanager(res.data)
+    }).catch((err) => {
+      console.error("Error fetching project managers:", err)
     });
-    AxiosInstance.get(`employees/`).then((res) =>{
+
+    AxiosInstance.get(`employees/`).then((res) => {
       setEmployees(res.data)
-      console.log(res.data)
       setLoading(false)
-    })
+    }).catch((err) => {
+      console.error("Error fetching employees:", err)
+      setLoading(false)
+    });
   }
 
   useEffect(() => {
@@ -46,143 +50,122 @@ const Create = () => {
     name : '', 
     comments: '', 
     status: '', 
-    
   }
 
-  const schema = yup
-  .object({
+  const schema = yup.object({
     name: yup.string().required('Name is a required field'),
     projectmanager: yup.string().required('Project manager is a required field'),
     employees: yup.array().min(1, 'Pick at least one option'),
     status: yup.string().required('Status is a required field'),
     comments: yup.string(), 
     start_date: yup.date().required('Start date is a required field'), 
-    end_date: yup.date().required('End date is a required field').min(yup.ref('start_date'),'The end date can not be before the start date'), 
+    end_date: yup.date().required('End date is a required field').min(yup.ref('start_date'),'The end date cannot be before the start date'), 
   })
 
+  const {handleSubmit, control} = useForm({defaultValues: defaultValues, resolver: yupResolver(schema)})
 
-  const {handleSubmit, control} = useForm({defaultValues:defaultValues, resolver: yupResolver(schema)})
+  const submission = (data) => {
+    const StartDate = Dayjs(data.start_date["$d"]).format("YYYY-MM-DD")
+    const EndDate = Dayjs(data.end_date["$d"]).format("YYYY-MM-DD")
 
-
-    const submission = (data) => 
-    {
-      const StartDate = Dayjs(data.start_date["$d"]).format("YYYY-MM-DD")
-      const EndDate = Dayjs(data.end_date["$d"]).format("YYYY-MM-DD")
-
-      console.log(data)
-      console.log("imp data", data.module_toegang)
-      
-      // AxiosInstance.post( `project/`,{
-      //   name: data.name,
-      //   projectmanager: data.projectmanager,
-      //   employees: data.employees,
-      //   status: data.status,
-      //   comments: data.comments, 
-      //   start_date: StartDate, 
-      //   end_date: EndDate,
-
-      // })
-
-      // .then((res) =>{
-      //   navigate(`/`)
-      // })
-
-
-    }
+    AxiosInstance.post(`project/`, {
+      name: data.name,
+      projectmanager: data.projectmanager,
+      employees: data.employees,
+      status: data.status,
+      comments: data.comments, 
+      start_date: StartDate, 
+      end_date: EndDate,
+    })
+    .then((res) => {
+      console.log("Project created successfully:", res.data);
+      navigate(`/`); // Redirect to the desired page after successful submission
+    })
+    .catch((err) => {
+      console.error("Error creating project:", err);
+    });
+  }
   
   return (
     <div>
-
-    { loading ? <p>Loading data...</p> :
+      {loading ? <p>Loading data...</p> :
       <form onSubmit={handleSubmit(submission)}>
 
-      <Box sx={{display:'flex', justifyContent:'space-between',width:'100%', backgroundColor:'#00003f', marginBottom:'10px'}}>
-         <Typography sx={{marginLeft:'20px', color:'#fff'}}>
+        <Box sx={{display:'flex', justifyContent:'space-between', width:'100%', backgroundColor:'#00003f', marginBottom:'10px'}}>
+          <Typography sx={{marginLeft:'20px', color:'#fff'}}>
             Create records
-         </Typography>
+          </Typography>
+        </Box>
 
-      </Box>
-
-      <Box sx={{display:'flex', width:'100%', boxShadow:3, padding:4, flexDirection:'column'}}>
+        <Box sx={{display:'flex', width:'100%', boxShadow:3, padding:4, flexDirection:'column'}}>
 
           <Box sx={{display:'flex', justifyContent:'space-around', marginBottom:'40px'}}> 
-              <MyTextField
-                label="Name"
-                name={"name"}
-                control={control}
-                placeholder="Provide a project name"
-                width={'30%'}
-                
-              />
+            <MyTextField
+              label="Name"
+              name={"name"}
+              control={control}
+              placeholder="Provide a project name"
+              width={'30%'}
+            />
 
-              <MyDatePickerField
-                label="Start date"
-                name="start_date"
-                control={control}
-                width={'30%'}
+            <MyDatePickerField
+              label="Start date"
+              name="start_date"
+              control={control}
+              width={'30%'}
+            />
 
-              />
-
-              <MyDatePickerField
-                label="End date"
-                name="end_date"
-                control={control}
-                width={'30%'}
-
-              />
-
+            <MyDatePickerField
+              label="End date"
+              name="end_date"
+              control={control}
+              width={'30%'}
+            />
           </Box>
 
           <Box sx={{display:'flex', justifyContent:'space-around'}}> 
-              <MyMultiLineField
-                label="Comments"
-                name="comments"
-                control={control}
-                placeholder="Provide project comments"
-                width={'30%'}
-                
-              />
+            <MyMultiLineField
+              label="Comments"
+              name="comments"
+              control={control}
+              placeholder="Provide project comments"
+              width={'30%'}
+            />
 
-              <MySelectField
-                label="Status"
-                name="status"
-                control={control}
-                width={'30%'}
-                options = {hardcoded_options}
-              />
+            <MySelectField
+              label="Status"
+              name="status"
+              control={control}
+              width={'30%'}
+              options={hardcoded_options}
+            />
 
-
-                <MySelectField
-                  label="Project manager"
-                  name="projectmanager"
-                  control={control}
-                  width={'30%'}
-                  options = {projectmanager}
-                />
-
-    
+            <MySelectField
+              label="Project manager"
+              name="projectmanager"
+              control={control}
+              width={'30%'}
+              options={projectmanager}
+            />
           </Box>
 
           <Box sx={{display:'flex', justifyContent:'start', marginTop:'40px'}}> 
-                    <MyMultiSelectField
-                      label="Employees"
-                      name="employees"
-                      control={control}
-                      width={'30%'}
-                      options = {employees}
-                  />
-                <Button variant="contained" type="submit" sx={{width:'30%'}}>
-                   Submit
-                </Button>
+            <MyMultiSelectField
+              label="Employees"
+              name="employees"
+              control={control}
+              width={'30%'}
+              options={employees}
+            />
+            <Button variant="contained" type="submit" sx={{width:'30%'}}>
+              Submit
+            </Button>
           </Box>
 
-      </Box>
-
+        </Box>
       </form> }
-
-  
     </div>
   )
 }
 
-export default Create
+export default Create;
